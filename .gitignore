@@ -1,0 +1,4 @@
+ee2_audit_report*.txt
+*.log
+__pycache__/
+*.py[cod]
