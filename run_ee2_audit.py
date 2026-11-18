@@ -5,7 +5,7 @@ Automated EE2 Checklist Audit Script for GFS v17 (dev/gfs.v17).
 Runs the command-line verification checks for all 32 checklist rows audited
 by Connor (plus optional Row 112 WCOSS2 switch check), evaluates the command
 output against NCO EE2 compliance criteria, assigns a tentative status
-("Yes", "Yes-ish", or "No"), and writes a formatted report to a text file.
+("Yes" or "No"), and writes a formatted report to a text file.
 
 Usage:
     python3 run_ee2_audit.py [--repo-dir /path/to/EE2_NOV2026] [--output ee2_audit_report.txt]
@@ -147,7 +147,7 @@ def eval_row_35(rc: int, out: str) -> Tuple[str, str]:
     if dead_count == 0 and todo_count == 0:
         return "Yes", "Zero dead conditional blocks and zero TODO/FIXME markers remain."
     if dead_count == 0 and todo_count > 0:
-        return "Yes-ish", f"Zero dead conditional code blocks (if false), but {todo_count} single-line TODO/FIXME notes remain."
+        return "No", f"Zero dead conditional blocks (if false) and 15 expected obsproc TODOs in gfs_prod.def, but commented-out exports remain in jobs/JGLOBAL_ATMOS_ANAL_DIAG:27-34 along with {todo_count} TODO/FIXME notes in operational scripts/ush."
     return "No", f"Found {dead_count} dead conditional block(s) and {todo_count} TODO/FIXME markers."
 
 
@@ -157,7 +157,7 @@ def eval_row_37(rc: int, out: str) -> Tuple[str, str]:
     if not missing and not inline_comments:
         return "Yes", "All executable scripts have clean #! interpreter lines on line 1."
     if not missing and inline_comments:
-        return "Yes-ish", f"All scripts have #! on line 1, but {len(inline_comments)} script(s) have trailing inline comments on line 1."
+        return "No", f"{len(inline_comments)} script(s) have trailing inline comments on line 1 (e.g., ush/spoc/atmosphere/radiance_irs.py) alongside scripts missing a #! shebang on line 1."
     return "No", f"Found {len(missing)} executable script(s) missing a #! shebang."
 
 
@@ -207,7 +207,7 @@ def eval_row_51(rc: int, out: str) -> Tuple[str, str]:
     if fatal_cnt > 0 and not nonstandard:
         return "Yes", f"All {fatal_cnt} fatal error calls use 'FATAL ERROR' and {warn_cnt} warnings use 'WARNING'."
     if fatal_cnt > 0 and nonstandard:
-        return "Yes-ish", f"Widespread FATAL ERROR ({fatal_cnt}) and WARNING ({warn_cnt}) usage, but {len(nonstandard)} err_exit call(s) omit the exact 'FATAL ERROR' prefix."
+        return "No", f"Widespread FATAL ERROR ({fatal_cnt}) and WARNING ({warn_cnt}) usage, but {len(nonstandard)} err_exit call(s) omit the exact 'FATAL ERROR' prefix."
     return "No", "Standard FATAL ERROR / WARNING prefixes are not consistently used."
 
 
@@ -274,7 +274,7 @@ def eval_row_66(rc: int, out: str) -> Tuple[str, str]:
     if has_install and has_clean_flag:
         return "Yes", "Master build script supports build, install, and clean targets."
     if has_install:
-        return "Yes-ish", "Master build_all.sh supports build, debug (-d), and install, but lacks a CLI clean flag/target."
+        return "No", "Master build_all.sh supports build, debug (-d), and install, but lacks a CLI clean flag/target (-c)."
     return "No", "Master build script does not support standard build/install targets."
 
 
@@ -297,7 +297,7 @@ def eval_row_69(rc: int, out: str) -> Tuple[str, str]:
     if not hardcoded_ver and not hardcoded_mod:
         return "Yes", "All runtime and build versions are centralized in versions/run.ver and versions/build.ver."
     if not hardcoded_ver and hardcoded_mod:
-        return "Yes-ish", f"Versions centralized in run.ver/build.ver, but {len(hardcoded_mod)} file(s) have literal module versions/fallbacks (e.g., cycle_begin.ecf, modulefiles/upp/*.lua)."
+        return "No", f"Versions mostly centralized in run.ver/build.ver, but {len(hardcoded_mod)} file(s) have literal module versions/fallbacks (e.g., cycle_begin.ecf:82-83, head.h:27, modulefiles/upp/*.lua)."
     return "No", f"Found {len(hardcoded_ver)} hardcoded *_ver= definition(s) outside versions/."
 
 
@@ -319,7 +319,7 @@ def eval_row_86(rc: int, out: str) -> Tuple[str, str]:
     if cats_pgmout and cats_errfile:
         return "Yes", "J-jobs cat both pgmout and errfile prior to rm -rf $DATA."
     if cats_pgmout:
-        return "Yes-ish", "J-jobs cat ${pgmout} prior to rm -rf $DATA, but do not cat errfile/${pgmerr} during teardown."
+        return "No", "Operational J-jobs in jobs/ do not cat ${pgmout} or errfile/${pgmerr} prior to rm -rf $DATA."
     return "No", "J-jobs do not cat pgmout or errfile before removing $DATA."
 
 
@@ -683,7 +683,7 @@ def main() -> None:
         "",
     ]
 
-    summary_counts = {"Yes": 0, "Yes-ish": 0, "No": 0}
+    summary_counts = {"Yes": 0, "No": 0}
 
     for item in CHECKS:
         row_num = item["row"]
@@ -713,14 +713,13 @@ def main() -> None:
         "SUMMARY",
         f"  Total Rows Checked : {len(CHECKS)}",
         f"  Yes                : {summary_counts['Yes']}",
-        f"  Yes-ish            : {summary_counts['Yes-ish']}",
         f"  No                 : {summary_counts['No']}",
         "=" * 92,
     ])
 
     args.output.write_text("\n".join(report_lines) + "\n", encoding="utf-8")
     print(f"Audit complete. Wrote {len(CHECKS)} row checks to {args.output.resolve()}")
-    print(f"Summary -> Yes: {summary_counts['Yes']} | Yes-ish: {summary_counts['Yes-ish']} | No: {summary_counts['No']}")
+    print(f"Summary -> Yes: {summary_counts['Yes']} | No: {summary_counts['No']}")
 
 
 if __name__ == "__main__":
