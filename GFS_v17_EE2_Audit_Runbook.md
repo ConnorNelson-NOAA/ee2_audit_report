@@ -13,7 +13,7 @@
 
 ---
 
-## 2. Checklist Verification Commands & Expected Findings (33 Rows)
+## 2. Checklist Verification Commands & Expected Findings (33 Rows, Strict Yes/No)
 
 ### Row 5
 * **Checklist Question:** Is vertical structure implemented according to NCO standards?
